@@ -1,0 +1,184 @@
+
+    Sub WIWtable()
+    
+    Dim chip_col, field_rng As Range, all_rng As Range
+    
+    Range(Cells(2, 12), Cells(2, 14)).EntireColumn.Select
+    Set field_rng = Selection
+    
+    Range(Cells(2, 7), Cells(2, 14)).EntireColumn.Select
+    Set all_rng = Selection
+            
+    
+    Sheets.Add after:=Worksheets(Worksheets.Count)
+    ActiveSheet.Name = "WIW"
+     
+    ActiveWorkbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:= _
+        field_rng, Version:=6).CreatePivotTable _
+        TableDestination:="WIW!R1C1", TableName:="Field_Mean_table", DefaultVersion:=6
+    
+    With ActiveSheet.PivotTables("Field_Mean_table").PivotCache
+        .RefreshOnFileOpen = False
+        .MissingItemsLimit = xlMissingItemsDefault
+    End With
+    
+    With ActiveSheet.PivotTables("Field_Mean_table").PivotFields("Field_X")
+        .Orientation = xlColumnField
+        .Position = 1
+    End With
+    With ActiveSheet.PivotTables("Field_Mean_table").PivotFields("Field_Y")
+        .Orientation = xlRowField
+        .Position = 1
+    End With
+    
+    ActiveSheet.PivotTables("Field_Mean_table").AddDataField ActiveSheet.PivotTables("Field_Mean_table" _
+        ).PivotFields("Mean'"), "计数项:Mean'", xlCount
+
+
+    Dim n, data() As Double, temp, maxnum, num, needY(), needX(), finalY(), finalX(), flag
+    
+    Range("A1").PivotTable.TableRange1.Select
+    Range(Cells(3, 2), Cells(Selection.Rows.Count - 1, Selection.Columns.Count - 1)).Select
+    Selection.SpecialCells(xlCellTypeConstants).Select
+    
+    n = Selection.Areas.Count
+
+    ReDim data(n, 2)
+    'save data
+    'data 0 value 1 row 2 column
+    For i = 1 To n
+        data(i, 0) = Selection.Areas(i)
+        data(i, 1) = Cells(Selection.Areas(i).Row, 1)
+        data(i, 2) = Cells(2, Selection.Areas(i).Column)
+    Next
+    
+    'sort data
+    For i = 1 To n
+        For j = 1 To n - 1
+            If data(j, 0) > data(j + 1, 0) Then
+                    For K = 0 To 2
+                        temp = data(j, K)
+                        data(j, K) = data(j + 1, K)
+                        data(j + 1, K) = temp
+                    Next
+            End If
+        Next
+    Next
+    
+    'max 4 or 5
+    If data(n - 4, 0) = data(n - 5, 0) Then
+        maxnum = 3
+    Else
+        maxnum = 4
+    End If
+        
+    ReDim needY(maxnum) 'max value row
+    ReDim needX(maxnum) 'max value column
+    ReDim finalY(maxnum) 'around max value row
+    ReDim finalX(maxnum) 'around max value column
+        
+    For i = 0 To maxnum
+        needY(i) = data(n - i, 1)
+        needX(i) = data(n - i, 2)
+    Next
+    
+    'add self and around's row and column
+    num = 0
+    
+    For i = 0 To maxnum
+        For j = 0 To n
+            If Abs(needY(i) - data(j, 1)) < 200 Then '判断行差距
+                If Abs(needX(i) - data(j, 2)) < 200 Then '判断列差距
+                    num = num + 1
+                    ReDim Preserve finalY(num)
+                    ReDim Preserve finalX(num)
+                    finalY(num - 1) = data(j, 1)
+                    finalX(num - 1) = data(j, 2)
+                End If
+            End If
+        Next
+    Next
+    
+    
+    ActiveWorkbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:= _
+        all_rng, Version:=6).CreatePivotTable _
+        TableDestination:="WIW!R55C1", TableName:="Chip_table", DefaultVersion:=6
+    
+    Sheets("WIW").Activate
+    
+    With ActiveSheet.PivotTables("Chip_table").PivotCache
+        .RefreshOnFileOpen = False
+        .MissingItemsLimit = xlMissingItemsDefault
+    End With
+
+    With ActiveSheet.PivotTables("Chip_table").PivotFields("Field_X")
+        .Orientation = xlPageField
+        .Position = 1
+    End With
+    With ActiveSheet.PivotTables("Chip_table").PivotFields("Field_Y")
+        .Orientation = xlPageField
+        .Position = 1
+    End With
+    With ActiveSheet.PivotTables("Chip_table").PivotFields("Chip_X")
+        .Orientation = xlColumnField
+        .Position = 1
+    End With
+    With ActiveSheet.PivotTables("Chip_table").PivotFields("Chip_Y")
+        .Orientation = xlRowField
+        .Position = 1
+    End With
+    
+    ActiveSheet.PivotTables("Chip_table").AddDataField ActiveSheet.PivotTables("Chip_table" _
+        ).PivotFields("Mean'"), "计数项:Mean'", xlCount
+    
+    ActiveSheet.PivotTables("Chip_table").PivotFields("Field_X").CurrentPage = "(All)"
+    
+    
+    'use string match control visible
+    For j = 0 To UBound(finalX) - 1
+        finalX(j) = CStr(finalX(j))
+        finalY(j) = CStr(finalY(j))
+    Next
+    
+    
+    With ActiveSheet.PivotTables("Chip_table").PivotFields("Field_X")
+        .EnableMultiplePageItems = True
+        
+        For i = 1 To .PivotItems.Count
+            flag = 0
+
+            For j = 0 To UBound(finalX) - 1
+                 x = Application.Match(.PivotItems(i).Value, finalX, 0)
+                 If TypeName(x) = "Double" Then
+                     flag = 1
+                     Exit For
+                End If
+            Next
+            
+            If flag = 0 Then
+                .PivotItems(i).Visible = False
+            End If
+        Next
+        
+    End With
+    
+    With ActiveSheet.PivotTables("Chip_table").PivotFields("Field_Y")
+        .EnableMultiplePageItems = True
+        
+        For i = 1 To .PivotItems.Count
+            flag = 0
+
+            For j = 0 To UBound(finalY) - 1
+                 x = Application.Match(.PivotItems(i).Value, finalY, 0)
+                 If TypeName(x) = "Double" Then
+                     flag = 1
+                     Exit For
+                End If
+            Next
+            
+            If flag = 0 Then
+                .PivotItems(i).Visible = False
+            End If
+        Next
+        
+    End With
