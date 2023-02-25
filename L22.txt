@@ -1,0 +1,213 @@
+Attribute VB_Name = "L22meancalculate"
+Sub L22mean()
+Count = Application.WorksheetFunction.CountIf(Sheets(1).Range("a:a"), "Site #")
+
+Application.ScreenUpdating = False
+
+If Count = 4 Then
+    Call test4
+ElseIf Count = 2 Then
+    Call test2
+End If
+
+Application.ScreenUpdating = True
+
+End Sub
+
+Sub test2()
+    Dim r1 As Range
+    Dim r2 As Range
+
+    maxrow = Worksheets(1).UsedRange.Rows.Count
+    
+    Set r1 = Columns("a:a").Find("Site #")
+    r1_row = Split(r1.Address, "$")(2)
+    
+    Set r2 = Range(Cells(r1_row, 1), Cells(maxrow, 1)).Find("Site #")
+    r2_row = Split(r2.Address, "$")(2)
+    
+    Call Copytonew("Wafer1", r1_row, r2_row)
+    
+    Call crateR
+    
+    Call Filt
+
+    Call Drawchart
+    
+    Call Deltamean("Wafer1", "W1 R (95-125)(0-95)")
+    
+    Call Resetall
+        
+End Sub
+
+Sub test4()
+    Dim r1 As Range
+    Dim r2 As Range
+    Dim r3 As Range
+    Dim r4 As Range
+    
+    maxrow = Worksheets(1).UsedRange.Rows.Count
+    
+    Set r1 = Columns("a:a").Find("Site #")
+    r1_row = Split(r1.Address, "$")(2)
+    
+    Set r2 = Range(Cells(r1_row, 1), Cells(maxrow, 1)).Find("Site #")
+    r2_row = Split(r2.Address, "$")(2)
+    
+    Set r3 = Range(Cells(r2_row, 1), Cells(maxrow, 1)).Find("Site #")
+    r3_row = Split(r3.Address, "$")(2)
+    
+    Set r4 = Range(Cells(r3_row, 1), Cells(maxrow, 1)).Find("Site #")
+    r4_row = Split(r4.Address, "$")(2)
+    
+    Call Copytonew("Wafer1", r1_row, r2_row)
+    
+    Call crateR
+    
+    Call Filt
+
+    Call Drawchart
+    
+    Call Deltamean("Wafer1", "W1 R (95-125)(0-95)")
+    
+    Call Copytonew("Wafer2", r3_row, r4_row)
+    
+    Call crateR
+    
+    Call Filt
+
+    Call Drawchart
+    
+    Call Deltamean("Wafer2", "W2 R (95-125)(0-95)")
+    
+    Call Resetall
+    
+
+End Sub
+
+Sub Copytonew(ByVal sheetname, ByVal r1_row, ByVal r2_row)
+    ''''copy to new sheet
+    Sheets(1).Activate
+    Cells(r1_row, 1).Select
+    Range(ActiveCell, ActiveCell.End(xlDown)).Select
+    Range(Selection, ActiveCell.End(xlToRight)).Select
+    Selection.Copy
+    Sheets.Add after:=Worksheets(Worksheets.Count)
+    ActiveSheet.Name = sheetname
+    ActiveSheet.Paste
+    Sheets(1).Activate
+    Cells(r2_row + 1, 1).Select
+    Range(ActiveCell, ActiveCell.End(xlDown)).Select
+    Range(Selection, ActiveCell.End(xlToRight)).Select
+    Selection.Copy
+    Sheets(sheetname).Activate
+    Selection.End(xlDown).Offset(1, 0).Select
+    ActiveSheet.Paste
+
+End Sub
+
+
+Sub crateR()
+    
+    Cells(1, 18).Select
+    ActiveCell.FormulaR1C1 = "R"
+    ActiveCell.Cells(2).FormulaR1C1 = "=SQRT(RC[-7]^2+RC[-6]^2)/1000000"
+    validaterows = ActiveCell.CurrentRegion.Rows.Count
+    ActiveCell.Cells(2).Select
+    Range(Cells(2, 18), Cells(validaterows, 18)).FillDown
+    Columns("B:B").Select
+    Selection.Copy
+    Selection.End(xlToRight).Offset(0, 1).EntireColumn.Select
+    ActiveSheet.Paste
+
+End Sub
+
+Sub Filt()
+    ''''delete R>147 and LBH=-1 and NGOF<0.98
+    Rows("1:1").Select
+    Selection.AutoFilter
+    ActiveCell.CurrentRegion.AutoFilter Field:=18, Criteria1:=">=147", Operator:=xlAnd
+    ActiveCell.CurrentRegion.Select
+    If ActiveCell.CurrentRegion.Rows.Count > 1 Then
+        ActiveCell.CurrentRegion.Offset(1, 0).EntireRow.Delete
+    End If
+    ActiveSheet.AutoFilterMode = False
+
+    Rows("1:1").Select
+    Selection.AutoFilter
+    ActiveCell.CurrentRegion.AutoFilter Field:=6, Criteria1:="=-1", Operator:=xlAnd
+    If ActiveCell.CurrentRegion.Rows.Count > 1 Then
+        ActiveCell.CurrentRegion.Offset(1, 0).EntireRow.Delete
+    End If
+    ActiveSheet.AutoFilterMode = False
+    
+    Rows("1:1").Select
+    Selection.AutoFilter
+    ActiveCell.CurrentRegion.AutoFilter Field:=8, Criteria1:="<=0.985", Operator:=xlAnd
+    If ActiveCell.CurrentRegion.Rows.Count > 1 Then
+        ActiveCell.CurrentRegion.Offset(1, 0).EntireRow.Delete
+    End If
+    ActiveSheet.AutoFilterMode = False
+    
+    ''''full BCD 3σ
+    Cells(3, 21) = "Full 3σ="
+    Cells(3, 22) = 3 * Application.WorksheetFunction.StDev(Columns("S:S"))
+    Cells(4, 22) = Round(Cells(3, 22).value, 2)
+        
+End Sub
+
+Sub Drawchart()
+    Columns("R:S").Select
+    ActiveSheet.Shapes.AddChart2(240, xlXYScatter).Select
+    ActiveChart.SetSourceData Source:=Columns("R:S")
+    ActiveChart.Axes(xlCategory).MaximumScale = 150
+    ActiveChart.Axes(xlCategory).MinimumScale = 10
+    ActiveChart.Axes(xlValue).MaximumScale = Fix(Application.WorksheetFunction.Max(Columns("S:S"))) + 4
+    ActiveChart.Axes(xlValue).MinimumScale = Fix(Application.WorksheetFunction.Max(Columns("S:S"))) - 6
+
+End Sub
+
+Sub Deltamean(ByVal sourcename, ByVal targetname)
+''''W1 R (95-125)(0-95)
+    Rows("1:1").Select
+    Selection.AutoFilter
+    ActiveCell.CurrentRegion.AutoFilter Field:=18, Criteria1:=">95", _
+        Operator:=xlAnd, Criteria2:="<=125"
+
+    Columns("R:S").Select
+    Selection.Copy
+    Sheets.Add after:=Sheets(sourcename)
+    ActiveSheet.Name = targetname
+    ActiveSheet.Paste
+    Cells(3, 4) = "R(95 - 125)"
+    Cells(4, 4) = Application.Average(Columns("B:B"))
+    
+    Sheets(sourcename).Activate
+    Rows("1:1").Select
+    ActiveSheet.AutoFilterMode = False
+    ActiveCell.CurrentRegion.AutoFilter Field:=18, Criteria1:=">=0", _
+        Operator:=xlAnd, Criteria2:="<=95"
+    Columns("R:S").Select
+    Selection.Copy
+    Sheets(targetname).Activate
+    Cells(1, 6).Select
+    ActiveSheet.Paste
+    Cells(3, 9) = "R(0 - 95)"
+    Cells(4, 9) = Application.Average(Columns("G:G"))
+    Cells(6, 9) = "Δmean="
+    Cells(6, 10) = Cells(4, 4).value - Cells(4, 9).value
+    Cells(7, 10) = Round(Cells(6, 10).value, 3)
+    
+End Sub
+
+Sub Resetall()
+
+For i = 1 To Worksheets.Count
+    Sheets(i).Activate
+    ActiveSheet.AutoFilterMode = False
+    Cells(1, 1).Activate
+Next
+    
+    Sheets(1).Activate
+
+End Sub
