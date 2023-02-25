@@ -1,0 +1,85 @@
+Sub IndieDomaCalculate()
+    Application.ScreenUpdating = False
+    Call filt
+    Call WIWtable
+    Call WIStable
+    
+    Sheets(1).Select
+    ActiveSheet.AutoFilterMode = False
+    Columns("K:L").Select
+    ActiveSheet.Shapes.AddChart2(240, xlXYScatter).Select
+    ActiveChart.SetSourceData Source:=Range("$K:$L")
+    ActiveChart.Axes(xlCategory).MaximumScale = 150
+    ActiveChart.Axes(xlValue).MaximumScale = 50
+    ActiveChart.Axes(xlValue).MinimumScale = 40
+    Application.ScreenUpdating = True
+    
+End Sub
+        
+        
+Sub filt()
+
+    Dim R_col, validaterows, mean_col
+    
+    Rows("1:1").Select
+    
+    Selection.Find(What:="Wafer_Y", after:=ActiveCell, LookIn:=xlFormulas, _
+        LookAt:=xlPart, SearchOrder:=xlByRows, SearchDirection:=xlNext, _
+        MatchCase:=False, MatchByte:=False, SearchFormat:=False).Activate
+    
+    ActiveCell.EntireColumn.Offset(0, 1).Select
+    
+    Selection.Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+
+    ActiveCell.FormulaR1C1 = "R"
+    
+    R_col = Selection.Column
+    
+    mean_col = R_col + 1
+    
+    ActiveCell.Cells(2).FormulaR1C1 = "=SQRT(RC[-2]^2+RC[-1]^2)/1000000"
+
+    validaterows = ActiveCell.CurrentRegion.Rows.Count
+
+    ActiveCell.Cells(2).Select
+    
+    Range(Cells(2, R_col), Cells(validaterows, R_col)).FillDown
+    
+    
+    Rows("1:1").Select
+    
+    Selection.Find(What:="Mean'", after:=ActiveCell, LookIn:=xlFormulas, _
+        LookAt:=xlPart, SearchOrder:=xlByRows, SearchDirection:=xlNext, _
+        MatchCase:=False, MatchByte:=False, SearchFormat:=False).Activate
+    
+    ActiveCell.EntireColumn.Select
+    
+    Selection.Copy
+    
+    Columns(R_col).Offset(0, 1).Select
+    
+    Selection.Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+    
+    Rows("1:1").Select
+    
+    Selection.AutoFilter
+    ActiveCell.CurrentRegion.AutoFilter Field:=mean_col, Criteria1:="~*"
+    
+    If Range(Cells(1, 1), Cells(ActiveSheet.UsedRange.Rows.Count, 1)).SpecialCells(xlCellTypeVisible).Rows.Count > 1 Then
+        ActiveSheet.Range(Cells(2, mean_col), Cells(validaterows, mean_col)).SpecialCells(xlCellTypeVisible).EntireRow.Delete
+    End If
+    
+    ActiveSheet.AutoFilterMode = False
+    
+    Selection.AutoFilter
+    ActiveCell.CurrentRegion.AutoFilter Field:=11, Criteria1:=">147"
+    
+    If Range(Cells(1, 1), Cells(ActiveSheet.UsedRange.Rows.Count, 1)).SpecialCells(xlCellTypeVisible).Rows.Count > 1 Then
+        ActiveSheet.Range(Cells(2, mean_col), Cells(validaterows, mean_col)).SpecialCells(xlCellTypeVisible).EntireRow.Delete
+    End If
+    
+    ActiveSheet.AutoFilterMode = False
+    
+    
+    
+    End Sub
