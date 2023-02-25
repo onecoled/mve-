@@ -1,0 +1,101 @@
+  
+Dim chips(), carng As Range
+    
+    Range("A55").PivotTable.TableRange1.Select
+    Range(Cells(57, 2), Cells(Selection.Rows.Count + 55 - 2, Selection.Columns.Count - 1)).Select
+    Selection.SpecialCells(xlCellTypeConstants).Select
+        
+    n = 0
+    For Each ch In Selection
+        If ch > Application.WorksheetFunction.Max(Selection) - 2 Then
+                    n = n + 1
+                    ReDim Preserve chips(1, n)
+                    chips(0, n) = ch.Row
+                    chips(1, n) = ch.Column
+        End If
+    Next
+    
+    With ActiveSheet.PivotTables("Chip_table").PivotFields("计数项:Mean'")
+        .Caption = "平均值项:Mean'"
+        .Function = xlAverage
+    End With
+    
+    Set carng = Range(Cells(chips(0, 1), chips(1, 1)).Address(0, 0))
+    
+    For i = 2 To n
+        R = chips(0, i)
+        c = chips(1, i)
+        Set carng = Union(carng, Range(Cells(R, c).Address(0, 0)))
+    Next
+    
+    outposition = 55 + Range("A55").PivotTable.TableRange1.Rows.Count + 3
+    Cells(outposition, 1) = "WIW 3σ="
+    Cells(outposition, 2) = 3 * Application.WorksheetFunction.StDev(carng)
+    Cells(outposition, 2).Activate
+    
+    
+    
+    End Sub
+    
+Sub WIStable()
+    
+    Sheets(1).Select
+    Rows("1:1").Select
+    Selection.AutoFilter
+    ActiveCell.CurrentRegion.AutoFilter Field:=7, Criteria1:="0", Operator:=xlFilterValues
+    ActiveCell.CurrentRegion.AutoFilter Field:=8, Criteria1:=Array("0", "2", "-2"), Operator:=xlFilterValues
+    
+    Sheets(1).Cells(1, 1).CurrentRegion.Copy
+    Sheets.Add after:=Worksheets(Worksheets.Count)
+    ActiveSheet.Name = "WIS"
+    Cells(50, 1).PasteSpecial xlPasteAll
+    
+    Sheets(1).Select
+    ActiveCell.CurrentRegion.AutoFilter Field:=7, Criteria1:=Array("-1", "1"), Operator:=xlFilterValues
+    ActiveCell.CurrentRegion.AutoFilter Field:=8, Criteria1:=Array("-1", "1"), Operator:=xlFilterValues
+    Sheets(1).Cells(1, 1).CurrentRegion.Offset(1, 0).Copy
+    Sheets("WIS").Select
+    Range("a" & Cells(Rows.Count, 1).End(xlUp).Row + 1).Select
+    Selection.PasteSpecial xlPasteAll
+    
+    Sheets(1).Select
+    ActiveCell.CurrentRegion.AutoFilter Field:=7, Criteria1:=Array("2", "-2"), Operator:=xlFilterValues
+    ActiveCell.CurrentRegion.AutoFilter Field:=8, Criteria1:="0", Operator:=xlFilterValues
+    Sheets(1).Cells(1, 1).CurrentRegion.Offset(1, 0).Copy
+    Sheets("WIS").Select
+    Range("a" & Cells(Rows.Count, 1).End(xlUp).Row + 1).Select
+    Selection.PasteSpecial xlPasteAll
+    
+    Sheets("WIS").Cells(50, 1).CurrentRegion.Select
+    ActiveWorkbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:= _
+        Selection, Version:=6).CreatePivotTable _
+        TableDestination:="WIS!R1C1", TableName:="Chip_Field_Mean_table", DefaultVersion:=6
+    
+    With ActiveSheet.PivotTables("Chip_Field_Mean_table").PivotCache
+        .RefreshOnFileOpen = False
+        .MissingItemsLimit = xlMissingItemsDefault
+    End With
+    
+    With ActiveSheet.PivotTables("Chip_Field_Mean_table").PivotFields("Field_X")
+        .Orientation = xlColumnField
+        .Position = 1
+    End With
+    
+    With ActiveSheet.PivotTables("Chip_Field_Mean_table").PivotFields("Field_Y")
+        .Orientation = xlRowField
+        .Position = 1
+    End With
+    
+    ActiveSheet.PivotTables("Chip_Field_Mean_table").AddDataField ActiveSheet.PivotTables("Chip_Field_Mean_table" _
+        ).PivotFields("Mean'"), "平均值项:Mean'", xlAverage
+         
+    Range("A1").PivotTable.TableRange1.Select
+    WISlast = Selection.Rows.Count
+        
+    Range(Cells(3, 2), Cells(WISlast - 1, Selection.Columns.Count - 1)).Select
+    Cells(WISlast + 2, 1) = "WIS 3σ="
+    Cells(WISlast + 2, 2) = 3 * Application.WorksheetFunction.StDev(Selection)
+    Cells(WISlast + 2, 2).Activate
+        
+    
+    End Sub
