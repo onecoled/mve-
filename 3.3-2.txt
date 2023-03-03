@@ -1,3 +1,5 @@
+MEEF似乎是直接测量得到，而且同一个generation基本不变
+
 提取 MASK CD文件
 直接得到的数据包含了MASK CD和对应的MASK XY坐标
 这三列数据就是需要转换到wafer的数据
