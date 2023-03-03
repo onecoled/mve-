@@ -1,3 +1,21 @@
+提取 MASK CD文件
+直接得到的数据包含了MASK CD和对应的MASK XY坐标
+这三列数据就是需要转换到wafer的数据
+CD数据和target是有偏差的
+偏差值计算到旁边的bias列，这个就是光罩上的CD误差
+ 
+将光罩上的位置除以4就是wafer上的位置，也就是wafer上的target
+实际wafer上的各点CD也是有误差的
+这里就形成了wafer上的误差
+两个误差相比就得到了MEEF
+
+下一步转换到wafer上
+数据复制到模板中
+wafer上有一个十字
+十字的中心右上角就是原点
+光罩坐标会转换成相对于原点的位置，也就是offset
+Offset=光罩坐标/4 - wafer原点坐标
+
 SCD量测的数据单位是微米，MASK CD的单位是毫米，因此还需要额外除以1000才能输入到DOMA的软件里
 
 SCD量测的是DOMA MARK
