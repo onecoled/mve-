@@ -11,3 +11,21 @@ SCD量测会对pattern造成破坏
 但总体的计算方式类似
 WIW：wafer内的全部shot取单点或四点取平均作为单个shot的量测值，再对所有的shot求3σ
 WIS：wafer内根据不同产品的操作手册，选取中心shot附近的9个shot，每个shot量测36个点，对这些shot内的量测平均值求3σ
+
+所以要知道什么？
+	现有的predict doma输入数据到底是什么，格式是什么，含义有哪些，输出呢
+	还有APC中相关的一些文件又包含了什么信息，是否可以利用
+	MASK CD是什么，数据如何可视化，怎么预处理
+	
+	是否需要用cdanalyzer内置的算法来得到最终输出recipe？
+		应该不用，仿照已有的predict doma
+		目前只需要把新产品的intra部分预测出来
+		输出为intrafield文件
+		最后用cdanalyzer来优化就可以了
+		
+		所以要弄清楚这个intrafield文件的内容
+		数据拟合过程也需要了解！
+		
+		
+		还需要
+同一片wafer的MASK CD ， 初次的AEISCD, 最终的dose recipe
