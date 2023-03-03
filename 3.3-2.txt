@@ -1,0 +1,13 @@
+SCD量测的数据单位是微米，MASK CD的单位是毫米，因此还需要额外除以1000才能输入到DOMA的软件里
+
+SCD量测的是DOMA MARK
+shot和die内有重要的pattern
+SCD量测会对pattern造成破坏
+因此DOMA MARK一般放在切割道上
+切割道是分割die和shot的道
+在shot内部同样有切割道
+ 
+不同generation的选点及量测方式不同
+但总体的计算方式类似
+WIW：wafer内的全部shot取单点或四点取平均作为单个shot的量测值，再对所有的shot求3σ
+WIS：wafer内根据不同产品的操作手册，选取中心shot附近的9个shot，每个shot量测36个点，对这些shot内的量测平均值求3σ
