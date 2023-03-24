@@ -1,0 +1,74 @@
+doma是改善wafer线宽均匀度的一个功能，也就是让产品的规格统一标准
+最开始只有光罩，工程师利用光罩信息设计了wafermap
+shot的大小和排布、mark分布等
+新产品最开始时non-doma，没有任何数据
+要改善这批产品的CDU，就需要选定产品要走的机台path
+分几片wafer出来试运行，这些wafer称为doma wafer
+doma wafer只用于实验测试，经过蚀刻后获取量测数据就报废了
+
+基本流程：
+先花费两片doma wafer跑过蚀刻量一下CD
+根据这个CD数据来建立该产品的DOMA
+再用两片doma wafer带上刚才建立的第一版DOMA跑过蚀刻
+查看带上第一版doma的数据是否理想
+一般这一版doma会有一些地方不够理想
+所以还会再调一版doma，再花两片doma wafer跑下去
+如果数据仍然有不够理想的地方
+还需要继续调doma，再花费两片doma wafer去测试。。
+如果数据可以接受，才能让大批产品带上最新版的doma往下跑
+整个过程中消耗的wafer很多，而且还需要加入大量的人工操作、数据处理和主观判断
+
+
+auto predict doma
+
+写了几个vbs程序来实现数auto数据处理
+
+想要实现根据光罩数据直接得到该产品的最终版doma
+只需要花两片doma wafer来验证这版doma效果如何
+最多只需要调一次就可以达到理想情况
+而且不需要工程师的大量额外操作
+实现人力物力的节省
+
+
+
+
+采样部分
+全局shot都至少采shot中心四个点，取平均作为该shot的量测值
+wafer中心的九个菱形排布的shot量30个点
+全局的量测值用于拟合interfield部分
+中心9个shot的量测值用于拟合intrafield部分
+
+量测数据包括wafer坐标和CD数据
+wafer坐标的坐标系是以wafer中心为坐标原点展开笛卡尔坐标系
+每个坐标表示了量测点在wafer上的绝对位置
+DOMA是针对interfield和intrafield来拟合出wafer以及shot内的CD变化
+所以需要转换量测数据点的位置
+也就是将CD数据转换为ADELCD文件
+
+把CD文件上传到服务器，选择该lot对应的ledr文件
+设置DoseSensitivity和Weight后即可转换成ADELCD
+打开ADELCD的XML文件查看
+里面的坐标是先定位量测点所属的field中心坐标
+再具体定位到该点相对于field中心坐标的位置
+记录当前坐标的CD，四舍五入保留三位小数
+从左下的shot开始向上记录
+记录完一列后回到左下第二列开始记录
+一列一列从下往上从左往右记录
+把量测点的坐标全部转换成wafer_inter和wafer_intra坐标
+利用这些数据开始进行拟合
+
+拟合过程
+
+在拟合intrafield部分时
+如果没有量测到shot边缘的值，CD Analyzer则会进行推算
+当拟合曲线的首尾起伏很大时，可能会产生异常值
+因此intrafield的拟合中设置了threshold
+把拟合结果的首尾限制在阈值范围内，从而得到更合适的拟合曲线
+如果可以量测到shot边缘值就能拟合出更好的结果
+
+
+
+看看数据转换、拟合过程、硬件动作
+
+找ASML人员要不到更细节的资料
+接下来找ASML设备方面的人员了解硬件方面的更多信息
