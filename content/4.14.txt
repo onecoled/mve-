@@ -19,7 +19,7 @@ intrashotxcd=[39.238	39.283	39.206	39.171	39.051	39.159	38.934	39.092	39.153;
 38.785	38.787	38.699	38.852	38.905	38.894	38.975	38.818	38.896;
 -12.04	-8.7253	-8.1812	-3.8816	-0.00596	4.2936	8.1692	9.4699	11.956;
 38.809	38.816	38.699	38.873	38.823	38.866	38.688	38.855	38.894;
--12.04	-8.7253	-8.1812	-3.8816	-0.00596	4.2936	8.1692	9.4699	11.956;]
+-12.04	-8.7253	-8.1812	-3.8816	-0.00596	4.2936	8.1692	9.4699	11.956;];
 intrashotycd=[39.256	39.231	39.195	39.16	39.186	39.131	39.098	39.143	39.064;
 -14.35	-10.243	-4.0822	-2.0286	2.0786	4.1322	10.293	14.4	16.153;
 39.03	39	39.087	39.058	39.025	39.039	39.039	39.083	38.655;
@@ -37,18 +37,100 @@ intrashotycd=[39.256	39.231	39.195	39.16	39.186	39.131	39.098	39.143	39.064;
 38.882	38.835	38.865	38.811	38.82	38.739	38.841	38.867	38.86;
 -14.35	-10.243	-4.0822	-2.0286	2.0786	4.1322	10.293	14.4	16.153;
 38.909	38.878	38.933	38.844	38.924	38.812	38.727	38.799	38.737;
--14.35	-10.243	-4.0822	-2.0286	2.0786	4.1322	10.293	14.4	16.153;]
+-14.35	-10.243	-4.0822	-2.0286	2.0786	4.1322	10.293	14.4	16.153;];
 
 x0=-1:0.01:1;
 yprofileslit=0;
-ydoma=0;
+ydomaslit=0;
 for i=1:6
-  yprofileslit = yprofileslit + Lprofileslit(i)*legendre(i,x0)(1,:);
-  ydoma = ydoma + Ldomaslit(i)*legendre(i,x0)(1,:);
+    tmp=legendre(i,x0);
+    yprofileslit = yprofileslit + Lprofileslit(i)*tmp(1,:);
+    ydomaslit = ydomaslit + Ldomaslit(i)*tmp(1,:);
 end
-y0=yprofileslit+ydoma;
+y0=yprofileslit+ydomaslit;
+figure,plot(x0,yprofileslit);
+figure,plot(x0,ydomaslit);
 figure,plot(x0,y0);
 
+x0=-1:0.01:1;
+yprofilescan=0;
+ydomascan=0;
+for i=1:6
+    tmp=legendre(i,x0);
+    yprofilescan = yprofilescan + Lprofilescan(i)*tmp(1,:);
+    ydomascan = ydomascan + Ldomascan(i)*tmp(1,:);
+end
+y0=yprofilescan+ydomascan;
+figure,plot(x0,yprofilescan);
+figure,plot(x0,ydomascan);
+figure,plot(x0,y0);
+
+figure,plot(intrashotxcd(2,:),intrashotxcd(1,:));
+hold on
+for i=1:8
+    plot(intrashotxcd(2+2*i,:),intrashotxcd(1+2*i,:));
+    hold on
+end
+
+figure,plot(intrashotycd(2,:),intrashotycd(1,:));
+hold on
+for i=1:8
+    plot(intrashotycd(2+2*i,:),intrashotycd(1+2*i,:));
+    hold on
+end
+
+
+inputxcd=intrashotxcd(1:2:end,:);
+for i =1:size(inputxcd,1)
+    inputxcd(i,:)=inputxcd(i,:)-mean(inputxcd(i,:));
+end
+
+inputycd=intrashotycd(1:2:end,:);
+for i =1:size(inputycd,1)
+    inputycd(i,:)=inputycd(i,:)-mean(inputycd(i,:));
+end
+
+
+testx=mean(inputxcd,1);
+figure,plot(testx);
+
+
+testy=mean(inputycd,1);
+figure,plot(testy);
+
+ADELcd
+将shot内的数据点投影到x方向和y方向，相同位置取平均值
+得到一个方向上的9个量测位置，用图线画出
+9个shot的量测点不直接在每个位置进行投影方向平均
+先对每个shot的量测点投影平均
+再将9个shot的结果进行平均
+和profilemaker的输出有较大差距，不采用对9个shot直接平均的方法
+需要分析的应该是变化趋势
+
+
+每个shot投影平均后得到的折线和profile的曲线趋势类似
+说明数据处理方法很有可能是正确的
+
+MASK的大多数量测位置是每隔一段距离设置三个相邻量测点
+尝试将相邻点的量测数据取平均从而整理成一个位置的量测数据
+再按照投影方向对量测数据取平均来查看趋势
+
+
+预计目标：新产品进来得到MASK
+根据参考产品的MASK、intrafield数据预测新产品的CD情况
+最后用模拟的CD数据来得到dosemap
+因此需要采集
+	同一MASK相同和不同path的profile
+分析intrafield部分的共同特征
+尝试在octave上用神经网络拟合
+
+实际操作了现有的predict doma
+除了需要选择intrafield、interfield文件
+还需要选择一份ledr文件
+ledr是lot曝光结果报告，包含了lot的shot大小、分布、dose等信息
+如果只是计算出profile中intra和interfield的多项式系数
+没有ledr文件仍然不能直接得出dosemap
+因此后续还需要分析ledr文件作为最终与profile结合产出
 
 
 P=legendre(n,X);
@@ -59,7 +141,7 @@ n是阶数，X是输入的自变量。
 需要先归一化到-1：1
 
 根据雷利准则（Rayleigh criterion），光学系统能够分辨出的最小宽度，也就是解析度，和光的波长成正比，与数值孔径NA成反比R=k1.λ/NA
-这就是所谓的饶舌极限（diffraction limit），使用较短波长的曝光源，或者使用较大的数值孔径，在理论上可以提高解析能力，可以做到更小的线宽
+这就是所谓的绕射极限（diffraction limit），使用较短波长的曝光源，或者使用较大的数值孔径，在理论上可以提高解析能力，可以做到更小的线宽
 根据雷利准则的另一个关系式
 DOF=K2.λ/(NA)^2
 不论是使用较短波长的曝光源或者较大的数值孔径，都会使聚焦深度（Depth of Focus）变小，聚焦深度越大越适合量产，因此在把线宽做小的情况下维持量产向来是半导体行业最大的挑战
